@@ -85,7 +85,7 @@ Output (stderr):
 
 ### `mcpkit inspect` — Real-Time Debug Dashboard
 
-Proxy + browser-based inspector for MCP traffic. Like Chrome DevTools for MCP.
+Proxy + browser-based inspector for MCP traffic. Real-time visibility into every tool call, latency, and request/response payload.
 
 ```bash
 # Inspect a server (opens browser dashboard)
@@ -107,6 +107,12 @@ The dashboard shows:
 - Filter by method, status, or direction
 - Search across tool names and arguments
 - Color-coded: green = success, red = error, yellow = slow, gray = notification
+
+![mcpkit inspector dashboard](https://github.com/user-attachments/assets/07278d77-9abe-45d7-896e-4ac777a34cf2)
+
+Use the **Tools only** filter to hide protocol noise and focus on real tool calls:
+
+![mcpkit inspector tools only filter](https://github.com/user-attachments/assets/d4dd531d-5312-451c-93de-6d7438ee2625)
 
 ### `mcpkit serve` — Shared Inspector Dashboard
 
