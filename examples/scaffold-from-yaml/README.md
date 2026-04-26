@@ -3,9 +3,12 @@
 This example shows how to scaffold a fully-typed TypeScript MCP server from a
 single YAML definition file using `mcpkit init`.
 
-The YAML file (`influxdb-server.yaml`) describes an MCP server that wraps an
-InfluxDB v2 database. The generated skeleton (`influxdb-server/`) is the
-starting point you fill in with real client logic.
+Two example YAML definitions are provided:
+
+| File | Description |
+|---|---|
+| `influxdb-server.yaml` | MCP server for InfluxDB v2 time-series data |
+| `postgresql-server.yaml` | MCP server for PostgreSQL (schema discovery + querying) |
 
 ---
 
@@ -13,20 +16,11 @@ starting point you fill in with real client logic.
 
 ```
 scaffold-from-yaml/
-├── influxdb-server.yaml      ← mcpkit definition (source of truth)
-└── influxdb-server/          ← generated skeleton (run mcpkit init to create)
-    ├── package.json
-    ├── tsconfig.json
-    ├── mcpkit.yaml
-    └── src/
-        ├── index.ts          ← server entry point (wiring only, do not edit)
-        └── tools/
-            ├── test_connection.ts
-            ├── list_buckets.ts
-            ├── list_measurements.ts
-            ├── execute_flux_query.ts
-            ├── compute_daily_hourly_average.ts
-            └── find_suspiciously_low_values.ts
+├── influxdb-server.yaml      ← mcpkit definition for InfluxDB
+├── postgresql-server.yaml    ← mcpkit definition for PostgreSQL
+├── README.md
+├── influxdb-server/          ← generated skeleton (run mcpkit init to create)
+└── postgresql-server/        ← generated skeleton (run mcpkit init to create)
 ```
 
 ---
@@ -171,6 +165,80 @@ params, and response payload in real time.
 
 ## Re-generating after YAML changes
 
-If you add or update tools in `influxdb-server.yaml`, re-run `mcpkit init`.
+If you add or update tools in a YAML definition, re-run `mcpkit init`.
 It only creates files that do not already exist — existing handler
 implementations are never overwritten.
+
+---
+
+## PostgreSQL example
+
+`postgresql-server.yaml` scaffolds an MCP server with tools for:
+
+| Tool | Description |
+|---|---|
+| `test_connection` | Server version and connection status |
+| `list_schemas` | All non-system schemas in the database |
+| `list_tables` | Tables in a schema with row estimates and size |
+| `describe_table` | Column types, nullability, and constraints |
+| `list_indexes` | Indexes on a table (type, columns, unique) |
+| `execute_query` | Read-only SELECT queries (non-SELECT rejected) |
+| `explain_query` | EXPLAIN ANALYZE with cost and timing |
+| `get_table_stats` | Live pg_stat_user_tables stats |
+| `get_slow_queries` | Top N queries from pg_stat_statements |
+| `get_database_size` | Size per database and per table |
+
+### Scaffold and run
+
+```bash
+mcpkit init --from postgresql-server.yaml --output postgresql-server
+cd postgresql-server
+npm install
+```
+
+Set environment variables:
+
+```bash
+export PGHOST=localhost
+export PGPORT=5432
+export PGDATABASE=mydb
+export PGUSER=myuser
+export PGPASSWORD=mypassword
+```
+
+Add the recommended client package to `package.json` then implement each handler:
+
+```bash
+npm install pg @types/pg
+```
+
+Example — `src/tools/execute_query.ts` after implementation:
+
+```typescript
+import { Pool } from "pg";
+
+const pool = new Pool(); // reads PG* env vars automatically
+
+export async function handle_execute_query(params: {
+  sql: string;
+  limit?: number;
+}) {
+  if (!/^\s*SELECT/i.test(params.sql)) {
+    throw new Error("Only SELECT statements are allowed");
+  }
+  const limitedSql = `${params.sql} LIMIT ${params.limit ?? 100}`;
+  const result = await pool.query(limitedSql);
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(result.rows) }],
+  };
+}
+```
+
+Run with mcpkit proxy (same as the InfluxDB example):
+
+```bash
+mcpkit proxy \
+  --server-name postgresql-server \
+  --inspector ws://localhost:3200/ws/ingest \
+  -- npm run dev
+```

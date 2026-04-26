@@ -1,0 +1,119 @@
+# mcpkit scaffold definition for a PostgreSQL MCP server.
+#
+# Run:  mcpkit init --from postgresql-server.yaml --output postgresql-server
+# This generates a ready-to-implement TypeScript MCP server skeleton with
+# one handler stub per tool below. Fill in the pg client calls inside
+# each handler and the server is ready to ship.
+
+name: postgresql-server
+transport: stdio
+
+tools:
+  # ── Connection ──────────────────────────────────────────────────────────────
+
+  - name: test_connection
+    description: >
+      Test the connection to PostgreSQL and return server version,
+      current database, and connection status.
+
+  # ── Schema Discovery ─────────────────────────────────────────────────────────
+
+  - name: list_schemas
+    description: >
+      List all schemas in the current database, excluding system schemas.
+
+  - name: list_tables
+    description: >
+      List all tables in a given schema along with their row estimates
+      and size on disk.
+    params:
+      schema:
+        type: string
+        required: false
+        description: Schema name to list tables from (defaults to "public")
+
+  - name: describe_table
+    description: >
+      Return the column definitions, data types, nullability, defaults,
+      and constraints for a specific table.
+    params:
+      schema:
+        type: string
+        required: false
+        description: Schema name (defaults to "public")
+      table:
+        type: string
+        required: true
+        description: Table name to describe
+
+  - name: list_indexes
+    description: >
+      List all indexes on a given table including their type, columns,
+      and whether they are unique or primary.
+    params:
+      schema:
+        type: string
+        required: false
+        description: Schema name (defaults to "public")
+      table:
+        type: string
+        required: true
+        description: Table name to list indexes for
+
+  # ── Querying ──────────────────────────────────────────────────────────────────
+
+  - name: execute_query
+    description: >
+      Execute a read-only SQL SELECT query and return the results as
+      a JSON array of rows. Non-SELECT statements are rejected.
+    params:
+      sql:
+        type: string
+        required: true
+        description: A valid SQL SELECT statement
+      limit:
+        type: number
+        required: false
+        description: Maximum number of rows to return (defaults to 100, max 1000)
+
+  - name: explain_query
+    description: >
+      Run EXPLAIN ANALYZE on a SQL query and return the query plan with
+      cost estimates and actual execution times.
+    params:
+      sql:
+        type: string
+        required: true
+        description: SQL query to explain
+
+  # ── Analytics ─────────────────────────────────────────────────────────────────
+
+  - name: get_table_stats
+    description: >
+      Return live statistics for a table: row count, dead tuples,
+      last vacuum/analyse time, and sequential vs index scan counts.
+    params:
+      schema:
+        type: string
+        required: false
+        description: Schema name (defaults to "public")
+      table:
+        type: string
+        required: true
+        description: Table name
+
+  - name: get_slow_queries
+    description: >
+      Return the top N slowest queries recorded by pg_stat_statements,
+      sorted by total execution time. Requires the pg_stat_statements
+      extension to be enabled.
+    params:
+      limit:
+        type: number
+        required: false
+        description: Number of slow queries to return (defaults to 10)
+
+  - name: get_database_size
+    description: >
+      Return the size of each database on the server along with the
+      size of each table in the current database.
