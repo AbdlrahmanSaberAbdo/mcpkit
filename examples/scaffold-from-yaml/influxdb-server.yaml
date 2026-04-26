@@ -1,0 +1,103 @@
+# mcpkit scaffold definition for an InfluxDB v2 MCP server.
+#
+# Run:  mcpkit init influxdb-server.yaml
+# This generates a ready-to-implement TypeScript MCP server skeleton with
+# one handler stub per tool below. Fill in the InfluxDB client calls inside
+# each handler and the server is ready to ship.
+
+name: influxdb-server
+transport: stdio
+
+tools:
+  # ── Connection ──────────────────────────────────────────────────────────────
+
+  - name: test_connection
+    description: >
+      Test the connection to InfluxDB and return detailed status information
+      including server version and health.
+
+  - name: list_buckets
+    description: >
+      List all available buckets in the InfluxDB instance with their
+      retention policies and organisation details.
+
+  # ── Discovery ───────────────────────────────────────────────────────────────
+
+  - name: list_measurements
+    description: >
+      List all measurements (time series) in the specified bucket along
+      with their fields and tags.
+    params:
+      bucket:
+        type: string
+        required: true
+        description: Name of the InfluxDB bucket to inspect
+
+  # ── Querying ─────────────────────────────────────────────────────────────────
+
+  - name: execute_flux_query
+    description: >
+      Execute a raw Flux query against InfluxDB. Supports aggregations,
+      filtering, transformations, and analytics. Returns structured
+      time-series data.
+    params:
+      query:
+        type: string
+        required: true
+        description: A valid Flux query string
+
+  # ── Pre-built Analytics ──────────────────────────────────────────────────────
+
+  - name: compute_daily_hourly_average
+    description: >
+      Compute hourly averages over the last 24 hours for a given
+      measurement and field, filtered by a tag (id_type / id pair).
+    params:
+      bucket:
+        type: string
+        required: true
+        description: InfluxDB bucket name
+      measurement:
+        type: string
+        required: true
+        description: Measurement name (e.g. "energy_consumption")
+      field:
+        type: string
+        required: true
+        description: Field key to aggregate (e.g. "value")
+      id_type:
+        type: string
+        required: true
+        description: Tag key used to filter the series (e.g. "meter_id")
+      id:
+        type: string
+        required: true
+        description: Tag value to filter by (e.g. "meter_001")
+
+  - name: find_suspiciously_low_values
+    description: >
+      Analyse daily aggregated data over the last year to detect suspicious
+      drops. A day is flagged when its value is both below the 10th
+      percentile of all daily values AND more than 5x smaller than the
+      previous day.
+    params:
+      bucket:
+        type: string
+        required: true
+        description: InfluxDB bucket name
+      measurement:
+        type: string
+        required: true
+        description: Measurement name
+      field:
+        type: string
+        required: true
+        description: Field key to analyse
+      id_type:
+        type: string
+        required: true
+        description: Tag key used to filter the series
+      id:
+        type: string
+        required: true
+        description: Tag value to filter by
