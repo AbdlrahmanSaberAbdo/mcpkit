@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mcpkit inspector</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>mcpkit <span class="subtitle">inspector</span></h1>
+      <span id="status" class="status disconnected">disconnected</span>
+    </div>
+    <div class="header-right">
+      <input type="text" id="search" placeholder="Search tools, methods..." />
+      <select id="filter-type">
+        <option value="">All messages</option>
+        <option value="tools_only">Tools only</option>
+        <option value="protocol">Protocol only</option>
+      </select>
+      <select id="filter-server">
+        <option value="">All servers</option>
+      </select>
+      <select id="filter-status">
+        <option value="">All statuses</option>
+        <option value="ok">Success</option>
+        <option value="error">Error</option>
+        <option value="timeout">Timeout</option>
+        <option value="pending">Pending</option>
+      </select>
+      <select id="filter-direction">
+        <option value="">All directions</option>
+        <option value="client_to_server">Client → Server</option>
+        <option value="server_to_client">Server → Client</option>
+      </select>
+      <button id="toggle-scroll" title="Pause auto-scroll">⏸</button>
+      <button id="clear-btn" title="Clear traces">Clear</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="table-container">
+      <table id="trace-table">
+        <thead>
+          <tr>
+            <th class="col-time">Time</th>
+            <th class="col-dir">Dir</th>
+            <th class="col-server">Server</th>
+            <th class="col-method">Method</th>
+            <th class="col-tool">Tool</th>
+            <th class="col-latency">Latency</th>
+            <th class="col-status">Status</th>
+          </tr>
+        </thead>
+        <tbody id="trace-body"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state">
+        <p>Waiting for traces...</p>
+        <p class="hint">Start an MCP server with <code>mcpkit inspect -- your-server-command</code></p>
+      </div>
+    </div>
+
+    <div id="detail-panel" class="detail-panel hidden">
+      <div class="detail-header">
+        <h3 id="detail-title">Trace Detail</h3>
+        <button id="detail-close">✕</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-meta" id="detail-meta"></div>
+        <div class="detail-section">
+          <h4>Request</h4>
+          <pre id="detail-request" class="json-view"></pre>
+        </div>
+        <div class="detail-section">
+          <h4>Response</h4>
+          <pre id="detail-response" class="json-view"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

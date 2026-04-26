@@ -1,0 +1,20 @@
+name: my-api-server
+transport: stdio
+tools:
+  - name: get_user
+    description: Get user by ID
+    params:
+      id:
+        type: string
+        required: true
+
+  - name: list_orders
+    description: List orders for a user
+    params:
+      user_id:
+        type: string
+        required: true
+      limit:
+        type: integer
+        required: false
+        default: 10

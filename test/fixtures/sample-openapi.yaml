@@ -1,0 +1,34 @@
+openapi: "3.0.3"
+info:
+  title: Sample API
+  version: "1.0.0"
+paths:
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create a new order
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+              properties:
+                product_id:
+                  type: string
+                  description: Product identifier
+                quantity:
+                  type: integer
+                  description: Number of items
