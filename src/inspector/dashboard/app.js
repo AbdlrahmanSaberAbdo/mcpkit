@@ -42,6 +42,19 @@
       if (msg.type === "history") {
         traces = msg.traces;
         traces.forEach(function (t) { registerServer(t.server); });
+        // Patch request entries with data from their paired responses,
+        // because the ring buffer stores them separately and the request
+        // entry never gets updated server-side after the response arrives.
+        traces.forEach(function (t) {
+          if (t.paired_with && t.direction === "server_to_client") {
+            var req = traces.find(function (r) { return r.id === t.paired_with; });
+            if (req) {
+              req.status = t.status;
+              req.latency_ms = t.latency_ms;
+              req.paired_with = t.id;
+            }
+          }
+        });
         render();
       } else if (msg.type === "trace") {
         traces.push(msg.trace);
@@ -216,22 +229,26 @@
       '<span class="label">Status</span><span class="' + ("status-" + trace.status) + '">' + trace.status + "</span>";
 
     detailRequest.innerHTML = trace.params ? syntaxHighlight(trace.params) : '<span class="json-null">—</span>';
-    detailResponse.innerHTML = trace.result
-      ? syntaxHighlight(trace.result)
-      : trace.error
-        ? syntaxHighlight(trace.error)
-        : '<span class="json-null">—</span>';
 
-    // If this is a request, try to find paired response
-    if (trace.paired_with) {
-      var pair = traces.find(function (t) { return t.id === trace.paired_with; });
-      if (pair) {
-        detailResponse.innerHTML = pair.result
-          ? syntaxHighlight(pair.result)
-          : pair.error
-            ? syntaxHighlight(pair.error)
-            : '<span class="json-null">—</span>';
-      }
+    if (trace.direction === "client_to_server") {
+      // Request row: look up the paired response for the response body
+      var responseTrace = trace.paired_with
+        ? traces.find(function (t) { return t.id === trace.paired_with; })
+        : null;
+      detailResponse.innerHTML = responseTrace
+        ? (responseTrace.result
+          ? syntaxHighlight(responseTrace.result)
+          : responseTrace.error
+            ? syntaxHighlight(responseTrace.error)
+            : '<span class="json-null">—</span>')
+        : '<span class="json-null">—</span>';
+    } else {
+      // Response row: result is directly on this trace
+      detailResponse.innerHTML = trace.result
+        ? syntaxHighlight(trace.result)
+        : trace.error
+          ? syntaxHighlight(trace.error)
+          : '<span class="json-null">—</span>';
     }
   }
 
@@ -254,6 +271,7 @@
     traces = [];
     render();
     detailPanel.classList.add("hidden");
+    fetch("/api/clear", { method: "POST" }).catch(function () {});
   });
 
   searchInput.addEventListener("input", render);

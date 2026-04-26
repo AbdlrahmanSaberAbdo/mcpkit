@@ -119,10 +119,16 @@ export class InspectorServer {
   private handleHttp(req: IncomingMessage, res: ServerResponse): void {
     const url = new URL(req.url ?? "/", `http://localhost:${this.port}`);
 
-    // REST API fallback for traces
     if (url.pathname === "/api/traces") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(this.buffer.getAll()));
+      return;
+    }
+
+    if (url.pathname === "/api/clear" && req.method === "POST") {
+      this.buffer.clear();
+      res.writeHead(204);
+      res.end();
       return;
     }
 
