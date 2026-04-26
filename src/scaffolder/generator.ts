@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { render } from "ejs";
-import type { ServerConfig, GeneratorOptions, ToolDescriptor } from "./types.js";
+import type { ServerConfig, GeneratorOptions } from "./types.js";
 import { toolToInputSchema } from "./types.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));

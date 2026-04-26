@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import type { WebSocket } from "ws";
 import { ProcessManager, parseCommand } from "../core/process.js";
 import { Interceptor } from "../core/interceptor.js";
 import type { TraceEntry } from "../core/trace.js";
@@ -51,7 +52,7 @@ export function registerProxyCommand(program: Command): void {
         { serverName: opts.serverName },
       );
 
-      let wsClient: import("ws").WebSocket | null = null;
+      let wsClient: WebSocket | null = null;
       if (opts.inspector) {
         const { default: WebSocket } = await import("ws");
         wsClient = new WebSocket(opts.inspector);

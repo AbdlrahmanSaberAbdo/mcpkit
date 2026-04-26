@@ -133,7 +133,7 @@ export class InspectorServer {
     }
 
     // Serve dashboard static files
-    let filePath = url.pathname === "/" ? "/index.html" : url.pathname;
+    const filePath = url.pathname === "/" ? "/index.html" : url.pathname;
     const fullPath = join(this.dashboardDir, filePath);
 
     try {

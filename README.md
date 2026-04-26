@@ -182,14 +182,18 @@ Or for inspection:
 ## Development
 
 ```bash
-git clone https://github.com/your-org/mcpkit
+git clone https://github.com/AbdlrahmanSaberAbdo/mcpkit.git
 cd mcpkit
 npm install
-npm run dev     # watch mode
-npm test        # run tests
-npm run build   # production build
+npm run dev        # watch mode (tsup)
+npm test           # Vitest
+npm run lint       # ESLint
+npm run typecheck  # tsc --noEmit
+npm run build      # production build
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for PR guidelines, releases, and how to run `mcpkit init` safely with `--output`.
 
 ## License
 
-MIT
+[MIT](LICENSE)
