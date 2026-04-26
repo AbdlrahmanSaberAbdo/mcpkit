@@ -1,0 +1,37 @@
+{
+  "name": "mcpkit",
+  "version": "0.1.0",
+  "description": "MCP Developer Toolkit — scaffold, proxy, and inspect MCP servers",
+  "type": "module",
+  "bin": {
+    "mcpkit": "./dist/bin/mcpkit.js"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["mcp", "model-context-protocol", "ai", "agent", "devtools"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "ws": "^8.18.0",
+    "yaml": "^2.7.0",
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "ejs": "^3.1.10",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsup": "^8.4.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.14",
+    "@types/ejs": "^3.1.5"
+  }
+}

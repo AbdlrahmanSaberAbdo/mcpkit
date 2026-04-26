@@ -1,0 +1,59 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+<% if (transport === 'stdio') { -%>
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+<% } else { -%>
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express from "express";
+<% } -%>
+import { z } from "zod";
+<% for (const tool of tools) { -%>
+import { handle_<%= tool.name.replace(/[^a-zA-Z0-9]/g, '_') %> } from "./tools/<%= tool.name %>.js";
+<% } -%>
+<%
+function toZod(pName, pDef) {
+  const typeMap = { string: 'z.string()', integer: 'z.number().int()', number: 'z.number()', boolean: 'z.boolean()' };
+  let expr = typeMap[pDef.type] || 'z.string()';
+  if (pDef.description) expr += `.describe(${JSON.stringify(pDef.description)})`;
+  if (pDef.required === false) expr += '.optional()';
+  return expr;
+}
+-%>
+
+const server = new McpServer({
+  name: "<%= name %>",
+  version: "0.1.0",
+});
+
+<% for (const tool of tools) { -%>
+server.tool(
+  "<%= tool.name %>",
+  {
+<% for (const [pName, pDef] of Object.entries(tool.params)) { -%>
+    <%- pName %>: <%- toZod(pName, pDef) %>,
+<% } -%>
+  },
+  (params) => handle_<%= tool.name.replace(/[^a-zA-Z0-9]/g, '_') %>(params),
+);
+
+<% } -%>
+<% if (transport === 'stdio') { -%>
+const transport = new StdioServerTransport();
+await server.connect(transport);
+<% } else { -%>
+const app = express();
+const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+await server.connect(transport);
+
+app.post("/mcp", async (req, res) => {
+  await transport.handleRequest(req, res);
+});
+
+app.get("/mcp", async (req, res) => {
+  await transport.handleRequest(req, res);
+});
+
+const PORT = process.env.PORT ?? 3100;
+app.listen(PORT, () => {
+  console.log(`MCP server listening on port ${PORT}`);
+});
+<% } -%>

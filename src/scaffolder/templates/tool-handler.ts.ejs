@@ -1,0 +1,19 @@
+/**
+ * Tool: <%= tool.name %>
+ * <%= tool.description %>
+ */
+export async function handle_<%= tool.name.replace(/[^a-zA-Z0-9]/g, '_') %>(params: {
+<% for (const [pName, pDef] of Object.entries(tool.params)) { -%>
+  <%= pName %><%= pDef.required === false ? '?' : '' %>: <%= pDef.type === 'integer' ? 'number' : pDef.type %>;
+<% } -%>
+}) {
+  // TODO: implement <%= tool.name %>
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify({ message: "TODO: implement <%= tool.name %>", params }),
+      },
+    ],
+  };
+}
