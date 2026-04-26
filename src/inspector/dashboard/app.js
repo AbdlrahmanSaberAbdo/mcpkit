@@ -93,7 +93,9 @@
     var direction = filterDirection.value;
 
     var isToolCall = trace.method === "tools/call";
-    if (type === "tools_only" && !isToolCall) return false;
+    var isRequest = trace.direction === "client_to_server";
+    // In tools_only mode show one row per call (the request, which gets updated with latency+status)
+    if (type === "tools_only" && (!isToolCall || !isRequest)) return false;
     if (type === "protocol" && isToolCall) return false;
     if (server && trace.server !== server) return false;
     if (status && trace.status !== status) return false;
