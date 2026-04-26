@@ -64,27 +64,159 @@ tools:
 
   - name: execute_query
     description: >
-      Execute a read-only SQL SELECT query and return the results as
-      a JSON array of rows. Non-SELECT statements are rejected.
+      Execute a read-only SQL SELECT query and return results as a JSON array
+      of rows. Supports any valid SELECT including JOINs, subqueries, CTEs
+      (WITH clauses), window functions, and aggregations.
+      Non-SELECT statements are rejected.
     params:
       sql:
         type: string
         required: true
-        description: A valid SQL SELECT statement
+        description: >
+          A valid SQL SELECT statement. Examples:
+          simple select, JOIN across tables, CTE with WITH, GROUP BY aggregation,
+          window functions with OVER(), subqueries in WHERE or FROM.
       limit:
         type: number
         required: false
         description: Maximum number of rows to return (defaults to 100, max 1000)
 
-  - name: explain_query
+  - name: execute_join_query
     description: >
-      Run EXPLAIN ANALYZE on a SQL query and return the query plan with
-      cost estimates and actual execution times.
+      Execute a JOIN query across two or more tables with optional filtering,
+      grouping, and ordering. A convenience wrapper for common JOIN patterns
+      without writing raw SQL.
+    params:
+      base_table:
+        type: string
+        required: true
+        description: Primary table (FROM clause), optionally schema-qualified e.g. "public.orders"
+      joins:
+        type: string
+        required: true
+        description: >
+          JSON array of join definitions. Each item: { "type": "INNER|LEFT|RIGHT|FULL",
+          "table": "schema.table", "on": "t1.col = t2.col" }
+      columns:
+        type: string
+        required: false
+        description: >
+          Comma-separated list of columns to select (defaults to *).
+          Use aliases to avoid name collisions e.g. "o.id, u.name AS user_name"
+      where:
+        type: string
+        required: false
+        description: WHERE clause condition (without the WHERE keyword)
+      group_by:
+        type: string
+        required: false
+        description: Comma-separated GROUP BY columns
+      having:
+        type: string
+        required: false
+        description: HAVING clause condition (without the HAVING keyword)
+      order_by:
+        type: string
+        required: false
+        description: Comma-separated ORDER BY expression e.g. "created_at DESC"
+      limit:
+        type: number
+        required: false
+        description: Maximum rows to return (defaults to 100)
+
+  - name: execute_aggregation
+    description: >
+      Run a GROUP BY aggregation query on a table with one or more aggregate
+      functions (COUNT, SUM, AVG, MIN, MAX, PERCENTILE_CONT, etc.).
+    params:
+      table:
+        type: string
+        required: true
+        description: Table to aggregate, optionally schema-qualified
+      group_by:
+        type: string
+        required: true
+        description: Comma-separated columns to group by
+      aggregates:
+        type: string
+        required: true
+        description: >
+          JSON array of aggregate definitions. Each item:
+          { "fn": "SUM|COUNT|AVG|MIN|MAX", "column": "col_name", "alias": "result_name" }
+      where:
+        type: string
+        required: false
+        description: Filter applied before aggregation (without WHERE keyword)
+      having:
+        type: string
+        required: false
+        description: Filter applied after aggregation (without HAVING keyword)
+      order_by:
+        type: string
+        required: false
+        description: Comma-separated ORDER BY expression
+      limit:
+        type: number
+        required: false
+        description: Maximum rows to return (defaults to 100)
+
+  - name: execute_window_query
+    description: >
+      Execute a query with window functions (OVER, PARTITION BY, ROW_NUMBER,
+      RANK, LEAD, LAG, running totals, moving averages, etc.).
     params:
       sql:
         type: string
         required: true
-        description: SQL query to explain
+        description: >
+          Full SELECT statement that includes window function expressions.
+          Example: SELECT id, amount, SUM(amount) OVER (PARTITION BY user_id
+          ORDER BY created_at) AS running_total FROM orders
+      limit:
+        type: number
+        required: false
+        description: Maximum rows to return (defaults to 100)
+
+  - name: execute_cte_query
+    description: >
+      Execute a query that uses one or more Common Table Expressions (WITH
+      clauses) for readable multi-step analysis or recursive queries.
+    params:
+      ctes:
+        type: string
+        required: true
+        description: >
+          JSON array of CTE definitions. Each item:
+          { "name": "cte_name", "sql": "SELECT ..." }
+          CTEs are assembled in order and can reference each other.
+      final_query:
+        type: string
+        required: true
+        description: >
+          The final SELECT that references the CTEs defined above.
+      recursive:
+        type: string
+        required: false
+        description: Set to "true" to use WITH RECURSIVE (for hierarchical/tree queries)
+      limit:
+        type: number
+        required: false
+        description: Maximum rows to return (defaults to 100)
+
+  - name: explain_query
+    description: >
+      Run EXPLAIN ANALYZE on any SQL query and return the query plan with
+      cost estimates, actual execution times, and row counts per node.
+      Useful for diagnosing slow queries and missing indexes.
+    params:
+      sql:
+        type: string
+        required: true
+        description: SQL query to explain (SELECT, JOIN, CTE, etc.)
+      format:
+        type: string
+        required: false
+        description: Output format — "text" (default), "json", or "yaml"
 
   # ── Analytics ─────────────────────────────────────────────────────────────────
 
