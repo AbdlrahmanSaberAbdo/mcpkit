@@ -4,14 +4,16 @@ Notable **user-facing** changes by version. Maintainers update this when cutting
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-27
+
 ### Fixed
 
-- Resolve inspector dashboard static files when running the **published** global CLI (`dist/bin` → `../dashboard`); `mcpkit serve` / `inspect` no longer 404 on `/`
+- Inspector dashboard loads when **`mcpkit`** is installed globally from npm (`dist/dashboard` resolved correctly next to `dist/bin`)
 
 ### Added
 
-- ESLint, GitHub Actions CI, release workflow (publish to npm when `main` has a new version), `LICENSE`, contributor/issue templates
-- npm package metadata (`files`, `repository`, etc.) for registry publishing
+- ESLint, GitHub Actions CI, release workflow (publish when `main` has a new version), `LICENSE`, contributor/issue templates
+- npm package metadata (`files`, `repository`, scoped package `@abdlrahmansaber/mcpkit`, etc.)
 
 ## [0.1.0] - 2026-04-26
 
