@@ -1,19 +1,13 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Notable **user-facing** changes by version. Maintainers update this when cutting a release (along with a version bump in `package.json`).
 
 ## [Unreleased]
 
 ### Added
 
-- `package.json`: `files` whitelist, `repository` / `bugs` / `homepage`, `prepublishOnly` build for npm tarball
-- ESLint (flat config) with `typescript-eslint` recommended rules
-- GitHub Actions CI (lint, typecheck, test on Node 20 and 22, build)
-- GitHub Actions release workflow on `v*.*.*` tags (npm publish + GitHub Release)
-- `LICENSE` (MIT), `CONTRIBUTING.md`, issue and PR templates
+- ESLint, GitHub Actions CI, release workflow (publish to npm when `main` has a new version), `LICENSE`, contributor/issue templates
+- npm package metadata (`files`, `repository`, etc.) for registry publishing
 
 ## [0.1.0] - 2026-04-26
 

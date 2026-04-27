@@ -1,9 +1,16 @@
 name: Release
 
+# Publishes when `main` contains a package.json version that is not yet on npm.
+# Typical flow: merge a PR that bumps `version` + CHANGELOG only when you want a release.
+
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.workflow }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -26,12 +33,30 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      - name: Check if this version is already on npm
+        id: meta
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          echo "pkg=$PKG" >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if npm view "${PKG}@${VER}" version >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Version ${VER} is already published — skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Version ${VER} is not on npm — publishing."
+          fi
+
       - name: Publish to npm
+        if: steps.meta.outputs.skip == 'false'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
+        if: steps.meta.outputs.skip == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.meta.outputs.version }}
           generate_release_notes: true

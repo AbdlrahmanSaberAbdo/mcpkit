@@ -48,39 +48,8 @@ YAML examples under `examples/scaffold-from-yaml/` are source-only. Generated fo
 
 ## Releases (maintainers)
 
-1. Bump version in `package.json` and update [`CHANGELOG.md`](CHANGELOG.md).
-2. Commit and push, then tag: `git tag v0.2.0 && git push origin v0.2.0`.
-3. Ensure the repository secret **`NPM_TOKEN`** is set (npm automation or granular token with publish permission).
+When you want a release, open a PR (or commit) that **only bumps** `version` in [`package.json`](package.json) and updates [`CHANGELOG.md`](CHANGELOG.md), then **merge to `main`**.
 
-Pushing a tag matching `v*.*.*` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): lint, typecheck, test, build, `npm publish`, and a GitHub Release with generated notes.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) runs on every push to `main`. It publishes to npm **only if** that version is **not** already on the registry (`npm view` check), then creates a GitHub Release tagged `vVERSION`. Merges that do not change the version do not publish.
 
-If `NPM_TOKEN` is missing, the publish step fails; fix secrets and re-run the failed job or delete the tag and push again after fixing.
-
-### First publication to npm
-
-1. Create an account on [npmjs.com](https://www.npmjs.com/signup) and verify the **`mcpkit`** name is available (`npm view mcpkit`).
-2. Locally: `npm login`.
-3. After `npm run build`, run `npm publish` from the repo root (or rely on CI after tagging). The tarball only includes [`package.json`](package.json) `files`: `dist/`, license, and docs — not `src/` or tests.
-
-Consumers install with **`npm install -g mcpkit`** or **`npx mcpkit`** once the package is published.
-
-### `403 Forbidden` when publishing
-
-npm requires **two-factor authentication** for publishing (or an eligible token).
-
-**Interactive publish from your machine**
-
-1. Enable 2FA on [npm → Account → Two-Factor Authentication](https://www.npmjs.com/settings/~YOUR_USERNAME/profile/edit) (choose **Authorization and publishing**).
-2. Publish with a one-time code:
-
-   ```bash
-   npm publish --otp=123456
-   ```
-
-   Replace `123456` with the code from your authenticator app.
-
-**GitHub Actions (`NPM_TOKEN`)**
-
-Create an **Automation** or **Granular** token at [npm → Access Tokens](https://www.npmjs.com/settings/~YOUR_USERNAME/tokens) with permission to publish this package. Automation tokens do not require `--otp`. Add it as repo secret `NPM_TOKEN`.
-
-Run `npm pkg fix` locally if npm warns about auto-corrected `package.json` fields (it normalizes `bin` paths and formatting).
+Repo secret **`NPM_TOKEN`** must be set. You can re-run the workflow manually (**Actions → Release → Run workflow**) if a publish failed after the tarball reached npm.

@@ -1,8 +1,11 @@
 {
-  "name": "mcpkit",
+  "name": "@abdlrahmansaber/mcpkit",
   "version": "0.1.0",
   "description": "MCP Developer Toolkit — scaffold, proxy, and inspect MCP servers",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "mcpkit": "dist/bin/mcpkit.js"
   },

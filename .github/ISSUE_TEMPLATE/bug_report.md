@@ -24,7 +24,7 @@ What happened instead (include error messages or screenshots if helpful).
 
 ## Environment
 
-- **mcpkit version** (e.g. `mcpkit --version` or `npm ls mcpkit`):
+- **mcpkit version** (e.g. `mcpkit --version` or `npm ls @abdlrahmansaber/mcpkit`):
 - **Node.js version** (`node -v`):
 - **OS**:
 
