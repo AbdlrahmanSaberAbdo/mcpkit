@@ -69,6 +69,21 @@ h1 .subtitle {
   gap: 8px;
 }
 
+.mask-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mask-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 #search {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -255,6 +270,39 @@ tr.trace-row.selected { background: rgba(88, 166, 255, 0.1); }
   letter-spacing: 0.5px;
   color: var(--text-muted);
   margin-bottom: 8px;
+}
+
+.json-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.json-toolbar.hidden {
+  display: none;
+}
+
+.payload-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 180px;
+}
+
+.json-preview-trunc {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.vscroll-spacer td {
+  background: transparent !important;
+  border: none !important;
 }
 
 .json-view {

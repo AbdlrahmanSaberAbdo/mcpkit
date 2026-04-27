@@ -4,6 +4,12 @@ Notable **user-facing** changes by version. Maintainers update this when cutting
 
 ## [Unreleased]
 
+### Added
+
+- Inspector dashboard: **Mask sensitive** (localStorage), long-payload compact view (expand + download unmasked JSON), virtualized trace table
+- `examples/inspector-dev-mcp/` — small MCP for testing the inspector (sensitive fields, large JSON, long strings)
+- Vitest tests for `src/inspector/dashboard/mask-json.js`
+
 ## [0.1.1] - 2026-04-27
 
 ### Fixed

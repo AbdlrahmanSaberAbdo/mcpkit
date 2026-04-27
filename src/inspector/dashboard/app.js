@@ -1,3 +1,12 @@
+import {
+  maskForDisplay,
+  serializedJsonLength,
+  LARGE_PAYLOAD_BYTES,
+  LARGE_PREVIEW_CHARS,
+  MASK_STORAGE_KEY,
+  DEFAULT_MASK_ENABLED,
+} from "./mask-json.js";
+
 (function () {
   const traceBody = document.getElementById("trace-body");
   const emptyState = document.getElementById("empty-state");
@@ -6,7 +15,10 @@
   const detailMeta = document.getElementById("detail-meta");
   const detailRequest = document.getElementById("detail-request");
   const detailResponse = document.getElementById("detail-response");
+  const detailRequestToolbar = document.getElementById("detail-request-toolbar");
+  const detailResponseToolbar = document.getElementById("detail-response-toolbar");
   const detailClose = document.getElementById("detail-close");
+  const maskSensitiveEl = document.getElementById("mask-sensitive");
   const searchInput = document.getElementById("search");
   const filterType = document.getElementById("filter-type");
   const filterServer = document.getElementById("filter-server");
@@ -15,12 +27,49 @@
   const toggleScroll = document.getElementById("toggle-scroll");
   const clearBtn = document.getElementById("clear-btn");
   const statusEl = document.getElementById("status");
-  const tableContainer = document.querySelector(".table-container");
+  const tableContainer = document.getElementById("table-container");
 
   let traces = [];
   let autoScroll = true;
   let selectedId = null;
   let ws = null;
+
+  /** @type {Set<string>} */
+  const expandedPayload = new Set();
+
+  const ROW_HEIGHT = 38;
+  const SCROLL_BUFFER_ROWS = 8;
+  let scrollScheduled = false;
+
+  function initMaskToggle() {
+    var stored = localStorage.getItem(MASK_STORAGE_KEY);
+    if (stored !== null) {
+      maskSensitiveEl.checked = stored === "1";
+    } else {
+      maskSensitiveEl.checked = DEFAULT_MASK_ENABLED;
+    }
+    maskSensitiveEl.addEventListener("change", function () {
+      localStorage.setItem(MASK_STORAGE_KEY, maskSensitiveEl.checked ? "1" : "0");
+      var t = traces.find(function (x) {
+        return x.id === selectedId;
+      });
+      if (t) selectTrace(t);
+    });
+  }
+
+  initMaskToggle();
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function getMaskOpts() {
+    return { enabled: maskSensitiveEl.checked };
+  }
 
   function connect() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -41,13 +90,14 @@
       var msg = JSON.parse(event.data);
       if (msg.type === "history") {
         traces = msg.traces;
-        traces.forEach(function (t) { registerServer(t.server); });
-        // Patch request entries with data from their paired responses,
-        // because the ring buffer stores them separately and the request
-        // entry never gets updated server-side after the response arrives.
+        traces.forEach(function (t) {
+          registerServer(t.server);
+        });
         traces.forEach(function (t) {
           if (t.paired_with && t.direction === "server_to_client") {
-            var req = traces.find(function (r) { return r.id === t.paired_with; });
+            var req = traces.find(function (r) {
+              return r.id === t.paired_with;
+            });
             if (req) {
               req.status = t.status;
               req.latency_ms = t.latency_ms;
@@ -60,7 +110,7 @@
         traces.push(msg.trace);
         registerServer(msg.trace.server);
         updatePairing(msg.trace);
-        appendRow(msg.trace);
+        render();
         if (autoScroll) {
           tableContainer.scrollTop = tableContainer.scrollHeight;
         }
@@ -85,17 +135,25 @@
           traces[i].paired_with = newTrace.id;
           traces[i].latency_ms = newTrace.latency_ms;
           traces[i].status = newTrace.status;
-          var row = document.querySelector(`[data-trace-id="${traces[i].id}"]`);
-          if (row) updateRowContent(row, traces[i]);
           break;
         }
       }
     }
+    render();
+    var t = traces.find(function (x) {
+      return x.id === selectedId;
+    });
+    if (t) selectTrace(t);
   }
 
   function formatTime(ts) {
     var d = new Date(ts);
-    return d.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return d.toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   }
 
   function matchesFilter(trace) {
@@ -107,7 +165,6 @@
 
     var isToolCall = trace.method === "tools/call";
     var isRequest = trace.direction === "client_to_server";
-    // In tools_only mode show one row per call (the request, which gets updated with latency+status)
     if (type === "tools_only" && (!isToolCall || !isRequest)) return false;
     if (type === "protocol" && isToolCall) return false;
     if (server && trace.server !== server) return false;
@@ -119,10 +176,20 @@
         trace.params && trace.params.name ? trace.params.name : "",
         trace.server || "",
         JSON.stringify(trace.params || {}),
-      ].join(" ").toLowerCase();
+      ]
+        .join(" ")
+        .toLowerCase();
       if (haystack.indexOf(search) === -1) return false;
     }
     return true;
+  }
+
+  function buildFiltered() {
+    var out = [];
+    for (var i = 0; i < traces.length; i++) {
+      if (matchesFilter(traces[i])) out.push(traces[i]);
+    }
+    return out;
   }
 
   function createRow(trace) {
@@ -140,9 +207,10 @@
 
   function getToolName(trace) {
     if (trace.params && trace.params.name) return trace.params.name;
-    // For response rows, look up tool name from the paired request
     if (trace.paired_with) {
-      var pair = traces.find(function (t) { return t.id === trace.paired_with; });
+      var pair = traces.find(function (t) {
+        return t.id === trace.paired_with;
+      });
       if (pair && pair.params && pair.params.name) return pair.params.name;
     }
     return "—";
@@ -152,44 +220,149 @@
     var isOut = trace.direction === "client_to_server";
     var toolName = getToolName(trace);
     var latency = trace.latency_ms !== null ? trace.latency_ms + "ms" : "—";
-    var latencyClass = trace.latency_ms !== null && trace.latency_ms > 1000 ? "latency-slow" : "latency-fast";
+    var latencyClass =
+      trace.latency_ms !== null && trace.latency_ms > 1000 ? "latency-slow" : "latency-fast";
 
     var statusIcon;
     var statusClass;
     switch (trace.status) {
-      case "ok": statusIcon = "✓"; statusClass = "status-ok"; break;
-      case "error": statusIcon = "✗"; statusClass = "status-error"; break;
-      case "timeout": statusIcon = "⏱"; statusClass = "status-timeout"; break;
-      default: statusIcon = "…"; statusClass = "status-pending"; break;
+      case "ok":
+        statusIcon = "✓";
+        statusClass = "status-ok";
+        break;
+      case "error":
+        statusIcon = "✗";
+        statusClass = "status-error";
+        break;
+      case "timeout":
+        statusIcon = "⏱";
+        statusClass = "status-timeout";
+        break;
+      default:
+        statusIcon = "…";
+        statusClass = "status-pending";
+        break;
     }
 
     tr.innerHTML =
-      '<td class="col-time">' + formatTime(trace.timestamp) + "</td>" +
-      '<td class="col-dir"><span class="dir-arrow ' + (isOut ? "dir-out" : "dir-in") + '">' + (isOut ? "→" : "←") + "</span></td>" +
-      '<td class="col-server"><span class="server-tag">' + (trace.server || "—") + "</span></td>" +
-      '<td class="col-method">' + (trace.method || "response") + "</td>" +
-      '<td class="col-tool">' + toolName + "</td>" +
-      '<td class="col-latency ' + latencyClass + '">' + latency + "</td>" +
-      '<td class="col-status ' + statusClass + '">' + statusIcon + "</td>";
+      '<td class="col-time">' +
+      formatTime(trace.timestamp) +
+      "</td>" +
+      '<td class="col-dir"><span class="dir-arrow ' +
+      (isOut ? "dir-out" : "dir-in") +
+      '">' +
+      (isOut ? "→" : "←") +
+      "</span></td>" +
+      '<td class="col-server"><span class="server-tag">' +
+      (trace.server || "—") +
+      "</span></td>" +
+      '<td class="col-method">' +
+      (trace.method || "response") +
+      "</td>" +
+      '<td class="col-tool">' +
+      toolName +
+      "</td>" +
+      '<td class="col-latency ' +
+      latencyClass +
+      '">' +
+      latency +
+      "</td>" +
+      '<td class="col-status ' +
+      statusClass +
+      '">' +
+      statusIcon +
+      "</td>";
   }
 
-  function appendRow(trace) {
-    if (!matchesFilter(trace)) return;
+  function renderVirtualRows() {
+    var filtered = buildFiltered();
+    traceBody.innerHTML = "";
+
+    if (filtered.length === 0) {
+      emptyState.style.display = "block";
+      return;
+    }
     emptyState.style.display = "none";
-    traceBody.appendChild(createRow(trace));
+
+    var ch = tableContainer.clientHeight || 480;
+    var scrollTop = tableContainer.scrollTop;
+    var totalPx = filtered.length * ROW_HEIGHT;
+    var win = Math.ceil(ch / ROW_HEIGHT) + SCROLL_BUFFER_ROWS * 2;
+    var start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - SCROLL_BUFFER_ROWS);
+    var end = Math.min(filtered.length, start + win);
+
+    if (selectedId) {
+      var selIdx = -1;
+      for (var j = 0; j < filtered.length; j++) {
+        if (filtered[j].id === selectedId) {
+          selIdx = j;
+          break;
+        }
+      }
+      if (selIdx !== -1) {
+        if (selIdx < start) {
+          start = Math.max(0, selIdx - SCROLL_BUFFER_ROWS);
+          end = Math.min(filtered.length, start + win);
+        }
+        if (selIdx >= end) {
+          end = Math.min(filtered.length, selIdx + SCROLL_BUFFER_ROWS + 1);
+          start = Math.max(0, end - win);
+        }
+      }
+    }
+
+    var topPx = start * ROW_HEIGHT;
+    var bottomPx = Math.max(0, totalPx - end * ROW_HEIGHT);
+
+    if (topPx > 0) {
+      var topTr = document.createElement("tr");
+      topTr.className = "vscroll-spacer";
+      var topTd = document.createElement("td");
+      topTd.colSpan = 7;
+      topTd.style.height = topPx + "px";
+      topTd.style.padding = "0";
+      topTd.style.border = "none";
+      topTr.appendChild(topTd);
+      traceBody.appendChild(topTr);
+    }
+
+    for (var i = start; i < end; i++) {
+      traceBody.appendChild(createRow(filtered[i]));
+    }
+
+    if (bottomPx > 0) {
+      var botTr = document.createElement("tr");
+      botTr.className = "vscroll-spacer";
+      var botTd = document.createElement("td");
+      botTd.colSpan = 7;
+      botTd.style.height = bottomPx + "px";
+      botTd.style.padding = "0";
+      botTd.style.border = "none";
+      botTr.appendChild(botTd);
+      traceBody.appendChild(botTr);
+    }
+
+    if (selectedId) {
+      var row = document.querySelector('[data-trace-id="' + selectedId + '"]');
+      if (row) row.classList.add("selected");
+    }
+  }
+
+  function scheduleScrollRender() {
+    if (scrollScheduled) return;
+    scrollScheduled = true;
+    requestAnimationFrame(function () {
+      scrollScheduled = false;
+      renderVirtualRows();
+    });
   }
 
   function render() {
-    traceBody.innerHTML = "";
-    var visible = 0;
-    for (var i = 0; i < traces.length; i++) {
-      if (matchesFilter(traces[i])) {
-        traceBody.appendChild(createRow(traces[i]));
-        visible++;
-      }
-    }
-    emptyState.style.display = visible === 0 ? "block" : "none";
+    renderVirtualRows();
   }
+
+  tableContainer.addEventListener("scroll", scheduleScrollRender);
+  window.addEventListener("resize", scheduleScrollRender);
 
   function syntaxHighlight(json) {
     if (json === null || json === undefined) return '<span class="json-null">null</span>';
@@ -205,9 +378,98 @@
         } else if (/null/.test(match)) {
           cls = "json-null";
         }
-        return '<span class="' + cls + '">' + match + "</span>";
+        return '<span class="' + cls + '">' + escapeHtml(match) + "</span>";
       }
     );
+  }
+
+  /**
+   * @param {HTMLElement} toolbarEl
+   * @param {HTMLElement} preEl
+   * @param {unknown} rawValue — unmasked source (for size + download)
+   * @param {string} traceId
+   * @param {"request"|"response"} part
+   */
+  function renderJsonSection(toolbarEl, preEl, rawValue, traceId, part) {
+    toolbarEl.innerHTML = "";
+    toolbarEl.classList.add("hidden");
+
+    var expKey = traceId + ":" + part;
+
+    if (rawValue === null || rawValue === undefined) {
+      preEl.innerHTML = '<span class="json-null">—</span>';
+      return;
+    }
+
+    var len = serializedJsonLength(rawValue);
+    var displayValue = maskForDisplay(rawValue, getMaskOpts());
+
+    if (len <= LARGE_PAYLOAD_BYTES) {
+      preEl.innerHTML = syntaxHighlight(displayValue);
+      return;
+    }
+
+    toolbarEl.classList.remove("hidden");
+
+    var summary = document.createElement("div");
+    summary.className = "payload-summary";
+    summary.textContent =
+      "Large payload (~" + len + " bytes serialized JSON). Preview is truncated; download is full unmasked JSON.";
+    toolbarEl.appendChild(summary);
+
+    var dlBtn = document.createElement("button");
+    dlBtn.type = "button";
+    dlBtn.textContent = "Download JSON";
+    dlBtn.addEventListener("click", function () {
+      try {
+        var blob = new Blob([JSON.stringify(rawValue, null, 2)], {
+          type: "application/json",
+        });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "trace-" + traceId.slice(0, 8) + "-" + part + ".json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        alert("Download failed: " + e);
+      }
+    });
+    toolbarEl.appendChild(dlBtn);
+
+    var expanded = expandedPayload.has(expKey);
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.textContent = expanded ? "Collapse" : "Expand full";
+    toggleBtn.addEventListener("click", function () {
+      if (!expanded && len > 1024 * 1024) {
+        if (
+          !confirm(
+            "This payload is very large (>1 MiB). Expanding may slow the browser. Continue?",
+          )
+        ) {
+          return;
+        }
+      }
+      if (expandedPayload.has(expKey)) expandedPayload.delete(expKey);
+      else expandedPayload.add(expKey);
+      var t = traces.find(function (x) {
+        return x.id === traceId;
+      });
+      if (t) selectTrace(t);
+    });
+    toolbarEl.appendChild(toggleBtn);
+
+    if (expanded) {
+      preEl.innerHTML = syntaxHighlight(displayValue);
+      return;
+    }
+
+    var pretty = JSON.stringify(displayValue, null, 2);
+    var truncatedText =
+      pretty.length > LARGE_PREVIEW_CHARS ? pretty.slice(0, LARGE_PREVIEW_CHARS) + "\n… (preview truncated)" : pretty;
+    preEl.innerHTML =
+      '<div class="json-preview-trunc">' + escapeHtml(truncatedText) + "</div>";
   }
 
   function selectTrace(trace) {
@@ -216,46 +478,66 @@
       el.classList.remove("selected");
     });
     var row = document.querySelector('[data-trace-id="' + trace.id + '"]');
-    if (row) row.classList.add("selected");
+    if (row) {
+      row.classList.add("selected");
+      row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
 
     detailPanel.classList.remove("hidden");
-    detailTitle.textContent = (trace.method || "response") + (trace.params && trace.params.name ? " — " + trace.params.name : "");
+    detailTitle.textContent =
+      (trace.method || "response") +
+      (trace.params && trace.params.name ? " — " + trace.params.name : "");
 
     detailMeta.innerHTML =
-      '<span class="label">Time</span><span>' + formatTime(trace.timestamp) + "</span>" +
-      '<span class="label">Direction</span><span>' + (trace.direction === "client_to_server" ? "Client → Server" : "Server → Client") + "</span>" +
-      '<span class="label">Server</span><span>' + trace.server + "</span>" +
-      '<span class="label">Latency</span><span>' + (trace.latency_ms !== null ? trace.latency_ms + "ms" : "—") + "</span>" +
-      '<span class="label">Status</span><span class="' + ("status-" + trace.status) + '">' + trace.status + "</span>";
+      '<span class="label">Time</span><span>' +
+      formatTime(trace.timestamp) +
+      "</span>" +
+      '<span class="label">Direction</span><span>' +
+      (trace.direction === "client_to_server" ? "Client → Server" : "Server → Client") +
+      "</span>" +
+      '<span class="label">Server</span><span>' +
+      trace.server +
+      "</span>" +
+      '<span class="label">Latency</span><span>' +
+      (trace.latency_ms !== null ? trace.latency_ms + "ms" : "—") +
+      "</span>" +
+      '<span class="label">Status</span><span class="' +
+      ("status-" + trace.status) +
+      '">' +
+      trace.status +
+      "</span>";
 
-    detailRequest.innerHTML = trace.params ? syntaxHighlight(trace.params) : '<span class="json-null">—</span>';
+    renderJsonSection(detailRequestToolbar, detailRequest, trace.params ?? null, trace.id, "request");
 
     if (trace.direction === "client_to_server") {
-      // Request row: look up the paired response for the response body
       var responseTrace = trace.paired_with
-        ? traces.find(function (t) { return t.id === trace.paired_with; })
+        ? traces.find(function (t) {
+            return t.id === trace.paired_with;
+          })
         : null;
-      detailResponse.innerHTML = responseTrace
-        ? (responseTrace.result
-          ? syntaxHighlight(responseTrace.result)
-          : responseTrace.error
-            ? syntaxHighlight(responseTrace.error)
-            : '<span class="json-null">—</span>')
-        : '<span class="json-null">—</span>';
+      var respBody =
+        responseTrace &&
+        (responseTrace.result !== null && responseTrace.result !== undefined
+          ? responseTrace.result
+          : responseTrace.error !== null && responseTrace.error !== undefined
+            ? responseTrace.error
+            : null);
+      renderJsonSection(detailResponseToolbar, detailResponse, respBody, trace.id, "response");
     } else {
-      // Response row: result is directly on this trace
-      detailResponse.innerHTML = trace.result
-        ? syntaxHighlight(trace.result)
-        : trace.error
-          ? syntaxHighlight(trace.error)
-          : '<span class="json-null">—</span>';
+      var respDirect =
+        trace.result !== null && trace.result !== undefined
+          ? trace.result
+          : trace.error !== null && trace.error !== undefined
+            ? trace.error
+            : null;
+      renderJsonSection(detailResponseToolbar, detailResponse, respDirect, trace.id, "response");
     }
   }
 
-  // Event listeners
   detailClose.addEventListener("click", function () {
     detailPanel.classList.add("hidden");
     selectedId = null;
+    expandedPayload.clear();
     document.querySelectorAll(".trace-row.selected").forEach(function (el) {
       el.classList.remove("selected");
     });
@@ -269,8 +551,10 @@
 
   clearBtn.addEventListener("click", function () {
     traces = [];
+    expandedPayload.clear();
     render();
     detailPanel.classList.add("hidden");
+    selectedId = null;
     fetch("/api/clear", { method: "POST" }).catch(function () {});
   });
 

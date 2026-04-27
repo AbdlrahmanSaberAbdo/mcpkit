@@ -1,0 +1,30 @@
+# Same tools as src/index.ts — scaffold a copy with:
+#   mcpkit init --from inspector-dev-mcp.yaml --output inspector-dev-copy
+name: inspector-dev-mcp
+transport: stdio
+
+tools:
+  - name: echo_sensitive
+    description: Echo synthetic secrets for masking tests in the inspector
+    params:
+      api_key:
+        type: string
+        required: true
+      password:
+        type: string
+      bearer_token:
+        type: string
+      harmless_note:
+        type: string
+
+  - name: long_text_field
+    description: Return a long string field to exercise truncation in the dashboard
+    params:
+      repeat:
+        type: integer
+
+  - name: large_json_response
+    description: Return JSON larger than compact-view threshold (~56 KiB serialized)
+    params:
+      approxSerializedBytes:
+        type: integer

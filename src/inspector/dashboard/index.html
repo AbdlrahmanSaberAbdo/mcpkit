@@ -13,6 +13,10 @@
       <span id="status" class="status disconnected">disconnected</span>
     </div>
     <div class="header-right">
+      <label class="mask-toggle" title="Hide common secret keys and truncate long strings in the detail panel">
+        <input type="checkbox" id="mask-sensitive" checked />
+        Mask sensitive
+      </label>
       <input type="text" id="search" placeholder="Search tools, methods..." />
       <select id="filter-type">
         <option value="">All messages</option>
@@ -40,7 +44,7 @@
   </header>
 
   <main>
-    <div class="table-container">
+    <div class="table-container" id="table-container">
       <table id="trace-table">
         <thead>
           <tr>
@@ -70,16 +74,18 @@
         <div class="detail-meta" id="detail-meta"></div>
         <div class="detail-section">
           <h4>Request</h4>
+          <div id="detail-request-toolbar" class="json-toolbar hidden"></div>
           <pre id="detail-request" class="json-view"></pre>
         </div>
         <div class="detail-section">
           <h4>Response</h4>
+          <div id="detail-response-toolbar" class="json-toolbar hidden"></div>
           <pre id="detail-response" class="json-view"></pre>
         </div>
       </div>
     </div>
   </main>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -4,6 +4,8 @@ MCP Developer Toolkit — scaffold, proxy, and inspect MCP servers.
 
 MCP (Model Context Protocol) is the standard interface between AI agents and tools. mcpkit gives you the developer tooling that's been missing: generate MCP servers from config files, debug tool calls in real-time, and proxy traffic for inspection.
 
+**Observability:** MCP traffic is JSON-RPC over stdio—there is no browser Network tab. mcpkit fills that gap: see which method ran, arguments and responses, latency, and whether the call failed—including tool-level failures the JSON-RPC layer still treats as OK. When you run multiple MCP servers (Cursor, Claude Desktop, etc.), traces are labeled per server so you are not guessing from a flat log stream.
+
 ## Install
 
 Published on npm as **`@abdlrahmansaber/mcpkit`** ([package page](https://www.npmjs.com/package/@abdlrahmansaber/mcpkit)). The CLI command on your PATH stays **`mcpkit`**:
@@ -108,7 +110,10 @@ The dashboard shows:
 - Live stream of all tool calls with method, tool name, latency, and status
 - Click any row to see full request/response JSON
 - Filter by method, status, or direction
-- Search across tool names and arguments
+- Search across tool names and arguments (searches raw payloads so you can still find values when masking is off)
+- **Mask sensitive** (on by default): hides common secret-like keys and truncates very long strings in the detail panel only; toggle persists in the browser; trace data in memory is still full—downloads use unmasked JSON
+- Large JSON responses: compact summary, truncated preview, **Expand full** (confirms if >1 MiB), and **Download JSON** (full unmasked body)
+- Virtualized trace table so long sessions stay responsive (ring buffer up to 1000 entries)
 - Color-coded: green = success, red = error, yellow = slow, gray = notification
 
 ![mcpkit inspector dashboard](https://github.com/user-attachments/assets/07278d77-9abe-45d7-896e-4ac777a34cf2)
