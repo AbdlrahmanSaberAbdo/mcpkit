@@ -4,9 +4,15 @@
   "description": "MCP Developer Toolkit — scaffold, proxy, and inspect MCP servers",
   "type": "module",
   "bin": {
-    "mcpkit": "./dist/bin/mcpkit.js"
+    "mcpkit": "dist/bin/mcpkit.js"
   },
-  "files": ["dist", "LICENSE", "README.md", "CHANGELOG.md", "CONTRIBUTING.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AbdlrahmanSaberAbdo/mcpkit.git"
@@ -25,7 +31,13 @@
     "lint:fix": "eslint src bin --fix",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["mcp", "model-context-protocol", "ai", "agent", "devtools"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agent",
+    "devtools"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"

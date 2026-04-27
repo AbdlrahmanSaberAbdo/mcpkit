@@ -63,3 +63,24 @@ If `NPM_TOKEN` is missing, the publish step fails; fix secrets and re-run the fa
 3. After `npm run build`, run `npm publish` from the repo root (or rely on CI after tagging). The tarball only includes [`package.json`](package.json) `files`: `dist/`, license, and docs — not `src/` or tests.
 
 Consumers install with **`npm install -g mcpkit`** or **`npx mcpkit`** once the package is published.
+
+### `403 Forbidden` when publishing
+
+npm requires **two-factor authentication** for publishing (or an eligible token).
+
+**Interactive publish from your machine**
+
+1. Enable 2FA on [npm → Account → Two-Factor Authentication](https://www.npmjs.com/settings/~YOUR_USERNAME/profile/edit) (choose **Authorization and publishing**).
+2. Publish with a one-time code:
+
+   ```bash
+   npm publish --otp=123456
+   ```
+
+   Replace `123456` with the code from your authenticator app.
+
+**GitHub Actions (`NPM_TOKEN`)**
+
+Create an **Automation** or **Granular** token at [npm → Access Tokens](https://www.npmjs.com/settings/~YOUR_USERNAME/tokens) with permission to publish this package. Automation tokens do not require `--otp`. Add it as repo secret `NPM_TOKEN`.
+
+Run `npm pkg fix` locally if npm warns about auto-corrected `package.json` fields (it normalizes `bin` paths and formatting).
