@@ -4,6 +4,10 @@ Notable **user-facing** changes by version. Maintainers update this when cutting
 
 ## [Unreleased]
 
+### Fixed
+
+- Resolve inspector dashboard static files when running the **published** global CLI (`dist/bin` → `../dashboard`); `mcpkit serve` / `inspect` no longer 404 on `/`
+
 ### Added
 
 - ESLint, GitHub Actions CI, release workflow (publish to npm when `main` has a new version), `LICENSE`, contributor/issue templates

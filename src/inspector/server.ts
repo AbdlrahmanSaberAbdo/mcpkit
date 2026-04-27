@@ -33,10 +33,13 @@ export class InspectorServer {
 
   constructor(opts: InspectorServerOptions = {}) {
     this.port = opts.port ?? 3200;
-    // Works both in dev (src/inspector/) and bundled (dist/bin/) contexts
+    // Bundled CLI: __dirname is dist/bin → dashboard lives at dist/dashboard (../dashboard).
+    // Dev (tsx): __dirname is src/inspector → ./dashboard.
     const candidates = [
       join(__dirname, "dashboard"),
+      join(__dirname, "..", "dashboard"),
       join(__rootDir, "dashboard"),
+      join(__rootDir, "dist", "dashboard"),
       join(__rootDir, "src", "inspector", "dashboard"),
     ];
     this.dashboardDir = opts.dashboardDir ?? candidates.find((d) => {
