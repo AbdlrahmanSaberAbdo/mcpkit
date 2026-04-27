@@ -390,15 +390,17 @@ import {
    * @param {string} traceId
    * @param {"request"|"response"} part
    */
+  /** @returns {boolean} true when compact toolbar + preview/download path was used */
   function renderJsonSection(toolbarEl, preEl, rawValue, traceId, part) {
     toolbarEl.innerHTML = "";
     toolbarEl.classList.add("hidden");
+    toolbarEl.classList.remove("json-toolbar--compact");
 
     var expKey = traceId + ":" + part;
 
     if (rawValue === null || rawValue === undefined) {
       preEl.innerHTML = '<span class="json-null">—</span>';
-      return;
+      return false;
     }
 
     var len = serializedJsonLength(rawValue);
@@ -406,15 +408,20 @@ import {
 
     if (len <= LARGE_PAYLOAD_BYTES) {
       preEl.innerHTML = syntaxHighlight(displayValue);
-      return;
+      return false;
     }
 
     toolbarEl.classList.remove("hidden");
+    toolbarEl.classList.add("json-toolbar--compact");
 
     var summary = document.createElement("div");
     summary.className = "payload-summary";
     summary.textContent =
-      "Large payload (~" + len + " bytes serialized JSON). Preview is truncated; download is full unmasked JSON.";
+      "Large payload (~" +
+      len +
+      " bytes serialized JSON, threshold " +
+      LARGE_PAYLOAD_BYTES +
+      "). Preview truncated; Download is full unmasked JSON.";
     toolbarEl.appendChild(summary);
 
     var dlBtn = document.createElement("button");
@@ -462,7 +469,7 @@ import {
 
     if (expanded) {
       preEl.innerHTML = syntaxHighlight(displayValue);
-      return;
+      return true;
     }
 
     var pretty = JSON.stringify(displayValue, null, 2);
@@ -470,6 +477,7 @@ import {
       pretty.length > LARGE_PREVIEW_CHARS ? pretty.slice(0, LARGE_PREVIEW_CHARS) + "\n… (preview truncated)" : pretty;
     preEl.innerHTML =
       '<div class="json-preview-trunc">' + escapeHtml(truncatedText) + "</div>";
+    return true;
   }
 
   function selectTrace(trace) {
@@ -488,6 +496,38 @@ import {
       (trace.method || "response") +
       (trace.params && trace.params.name ? " — " + trace.params.name : "");
 
+    var respBody = null;
+    if (trace.direction === "client_to_server") {
+      var responseTrace = trace.paired_with
+        ? traces.find(function (t) {
+            return t.id === trace.paired_with;
+          })
+        : null;
+      respBody =
+        responseTrace &&
+        (responseTrace.result !== null && responseTrace.result !== undefined
+          ? responseTrace.result
+          : responseTrace.error !== null && responseTrace.error !== undefined
+            ? responseTrace.error
+            : null);
+    } else {
+      respBody =
+        trace.result !== null && trace.result !== undefined
+          ? trace.result
+          : trace.error !== null && trace.error !== undefined
+            ? trace.error
+            : null;
+    }
+
+    var respSerializedLen =
+      respBody !== null && respBody !== undefined ? serializedJsonLength(respBody) : 0;
+    var largeHint =
+      respSerializedLen > LARGE_PAYLOAD_BYTES
+        ? '<div class="detail-meta-banner"><span class="label">Large response</span><span class="detail-large-hint">~' +
+          respSerializedLen +
+          " chars serialized — use <strong>Download JSON</strong> / <strong>Expand full</strong> under <strong>Response</strong> below.</span></div>"
+        : "";
+
     detailMeta.innerHTML =
       '<span class="label">Time</span><span>' +
       formatTime(trace.timestamp) +
@@ -505,32 +545,23 @@ import {
       ("status-" + trace.status) +
       '">' +
       trace.status +
-      "</span>";
+      "</span>" +
+      largeHint;
 
     renderJsonSection(detailRequestToolbar, detailRequest, trace.params ?? null, trace.id, "request");
 
-    if (trace.direction === "client_to_server") {
-      var responseTrace = trace.paired_with
-        ? traces.find(function (t) {
-            return t.id === trace.paired_with;
-          })
-        : null;
-      var respBody =
-        responseTrace &&
-        (responseTrace.result !== null && responseTrace.result !== undefined
-          ? responseTrace.result
-          : responseTrace.error !== null && responseTrace.error !== undefined
-            ? responseTrace.error
-            : null);
-      renderJsonSection(detailResponseToolbar, detailResponse, respBody, trace.id, "response");
-    } else {
-      var respDirect =
-        trace.result !== null && trace.result !== undefined
-          ? trace.result
-          : trace.error !== null && trace.error !== undefined
-            ? trace.error
-            : null;
-      renderJsonSection(detailResponseToolbar, detailResponse, respDirect, trace.id, "response");
+    var compactResponse = renderJsonSection(
+      detailResponseToolbar,
+      detailResponse,
+      respBody,
+      trace.id,
+      "response",
+    );
+
+    if (compactResponse) {
+      requestAnimationFrame(function () {
+        detailResponseToolbar.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
     }
   }
 

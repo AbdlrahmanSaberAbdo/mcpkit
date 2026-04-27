@@ -6,7 +6,9 @@ Minimal MCP server for manually testing **mcpkit inspector**: masking, long-stri
 |------|-------------------|
 | **`echo_sensitive`** | Params/results with `api_key`, optional `password` / `bearer_token` → **Mask sensitive** in the dashboard |
 | **`long_text_field`** | Optional `repeat` (default ~1200) → **long-string truncation** when masking is on |
-| **`large_json_response`** | Optional `approxSerializedBytes` (default ~70k serialized) → compact preview, **Expand full**, **Download JSON** |
+| **`large_json_response`** | Optional `approxSerializedBytes` (default ~70k serialized) → **compact toolbar** (Download / Expand) under **Response** in the inspector — only triggers when serialized JSON exceeds mcpkit’s threshold (~56 KiB). Scroll the detail panel if needed. |
+
+**Note:** Small tools like `echo_sensitive` stay **below** that size, so you only see syntax-highlighted JSON — no compact toolbar until you call **`large_json_response`** (or similar huge payloads).
 
 This folder is **source-only**: run `npm install` and `npm run build` locally (`dist/` is gitignored). Do not commit `node_modules/`.
 

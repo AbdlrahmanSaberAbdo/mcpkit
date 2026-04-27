@@ -112,7 +112,7 @@ The dashboard shows:
 - Filter by method, status, or direction
 - Search across tool names and arguments (searches raw payloads so you can still find values when masking is off)
 - **Mask sensitive** (on by default): hides common secret-like keys and truncates very long strings in the detail panel only; toggle persists in the browser; trace data in memory is still full—downloads use unmasked JSON
-- Large JSON responses: compact summary, truncated preview, **Expand full** (confirms if >1 MiB), and **Download JSON** (full unmasked body)
+- Large JSON responses (serialized size **> ~56 KiB**): highlighted banner + toolbar under **Response**, truncated preview, **Expand full** (confirms if >1 MiB), **Download JSON** (full unmasked body); yellow hint row in trace detail when applicable
 - Virtualized trace table so long sessions stay responsive (ring buffer up to 1000 entries)
 - Color-coded: green = success, red = error, yellow = slow, gray = notification
 

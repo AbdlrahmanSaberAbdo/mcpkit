@@ -284,6 +284,39 @@ tr.trace-row.selected { background: rgba(88, 166, 255, 0.1); }
   display: none;
 }
 
+.json-toolbar--compact {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px 12px;
+  background: rgba(210, 153, 34, 0.08);
+  border: 1px solid rgba(210, 153, 34, 0.35);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.json-toolbar--compact button {
+  align-self: flex-start;
+}
+
+.detail-meta-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.detail-large-hint {
+  color: var(--yellow);
+  font-size: 12px;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 140px;
+}
+
 .payload-summary {
   font-size: 12px;
   color: var(--text-muted);
