@@ -55,3 +55,11 @@ YAML examples under `examples/scaffold-from-yaml/` are source-only. Generated fo
 Pushing a tag matching `v*.*.*` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): lint, typecheck, test, build, `npm publish`, and a GitHub Release with generated notes.
 
 If `NPM_TOKEN` is missing, the publish step fails; fix secrets and re-run the failed job or delete the tag and push again after fixing.
+
+### First publication to npm
+
+1. Create an account on [npmjs.com](https://www.npmjs.com/signup) and verify the **`mcpkit`** name is available (`npm view mcpkit`).
+2. Locally: `npm login`.
+3. After `npm run build`, run `npm publish` from the repo root (or rely on CI after tagging). The tarball only includes [`package.json`](package.json) `files`: `dist/`, license, and docs — not `src/` or tests.
+
+Consumers install with **`npm install -g mcpkit`** or **`npx mcpkit`** once the package is published.

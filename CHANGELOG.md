@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `package.json`: `files` whitelist, `repository` / `bugs` / `homepage`, `prepublishOnly` build for npm tarball
 - ESLint (flat config) with `typescript-eslint` recommended rules
 - GitHub Actions CI (lint, typecheck, test on Node 20 and 22, build)
 - GitHub Actions release workflow on `v*.*.*` tags (npm publish + GitHub Release)

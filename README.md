@@ -6,13 +6,16 @@ MCP (Model Context Protocol) is the standard interface between AI agents and too
 
 ## Install
 
+Published on the [npm registry](https://www.npmjs.com/package/mcpkit) as **`mcpkit`**:
+
 ```bash
-npm install -g mcpkit
-# or use directly
-npx mcpkit --help
+npm install -g mcpkit   # global CLI on PATH
+npx mcpkit --help       # run without installing
 ```
 
 Requires Node.js 20+.
+
+If `npm install` cannot find the package yet, clone this repo and use `npm link` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Commands
 
